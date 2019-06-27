@@ -67,12 +67,11 @@ module FourKitesParsers
 
       def parse_load_level_reference(shipment_attr_element)
         release_gid = shipment_attr_element.children.detect {|child| child.name == 'ReleaseGid'}
-        if release_gid.present?
+        return if release_gid.blank?
           gid = get_gid_from_element(release_gid)
           if gid.present?
             xid = get_xid_from_element(gid)
             @load[8] << xid.text if xid.present?
-          end
         end
       end
 
