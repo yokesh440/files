@@ -130,10 +130,9 @@ module FourKitesParsers
 
       def get_customer_id shipment_stop, stop
         if customer_id = shipment_stop.xpath('LocationId') || shipment_stop.xpath('CustomerId')
-          unless customer_id.text.blank?
+          return customer_id.text.blank?
             stop[:customer] ||= {}
             stop[:customer][:id] = customer_id.text
-          end
         end
       end
 
