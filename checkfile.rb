@@ -55,23 +55,31 @@ module FourKitesParsers
             when 'ShipmentStop'
               parsing_shipment_stop(shipment_attr_element)
             when 'Location'
-              parsed_locations = parse_location(shipment_attr_element)
-              parsed_locations.each do |parsed_location_ref_num|
-                @load[8] << get_label(parsed_location_ref_num[:xid]) + ":" + parsed_location_ref_num[:value] if parsed_location_ref_num[:xid].in?(['BUSINESS_UNIT'])
-              end
+              parse_location_reference_num(shipment_attr_element)
             when 'Release'
-              release_gid = shipment_attr_element.children.detect {|child| child.name == 'ReleaseGid'}
-              if release_gid.present?
-                gid = get_gid_from_element(release_gid)
-                if gid.present?
-                  xid = get_xid_from_element(gid)
-                  @load[8] << xid.text if xid.present?
-                end
-              end
+              parse_load_level_reference(shipment_attr_element)
             end
           end
         rescue Exception => e
           FourKitesCommon::Logger.error(self, "Error parsing the file #{@file_name}", error: e.message)
+        end
+      end
+
+      def parse_load_level_reference(shipment_attr_element)
+        release_gid = shipment_attr_element.children.detect {|child| child.name == 'ReleaseGid'}
+        if release_gid.present?
+          gid = get_gid_from_element(release_gid)
+          if gid.present?
+            xid = get_xid_from_element(gid)
+            @load[8] << xid.text if xid.present?
+          end
+        end
+      end
+
+      def parse_location_reference_num(shipment_attr_element)
+        parsed_locations = parse_location(shipment_attr_element)
+        parsed_locations.each do |parsed_location_ref_num|
+          @load[8] << get_label(parsed_location_ref_num[:xid]) + ":" + parsed_location_ref_num[:value] if parsed_location_ref_num[:xid].in?(['BUSINESS_UNIT'])
         end
       end
 
