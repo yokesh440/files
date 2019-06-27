@@ -134,11 +134,10 @@ module FourKitesParsers
 
       def get_customer_id shipment_stop, stop
         if customer_id = shipment_stop.xpath('LocationId') || shipment_stop.xpath('CustomerId')
-          unless customer_id.text.blank?
+          return if customer_id.text.blank?
             stop[:customer] ||= {}
             stop[:customer][:id] = customer_id.text
           end
-        end
       end
 
       def get_domain_name(gid)
@@ -147,27 +146,7 @@ module FourKitesParsers
       end
 
       def parse_shipment_header(shipment_attr_element)
-        shipment_attr_element.children.each do |shipment_header_attr_element|
-          case shipment_header_attr_element.name
-          when 'ShipmentGid'
-            @load[1] = shipment_header_attr_element.xpath("./*[1][self::Gid]/Xid[1]").text
-            gid = shipment_header_attr_element.children.first
-            @load[8] << get_domain_name(gid)
-          when 'ServiceProviderGid'
-            gid = shipment_header_attr_element.children.first
-            xid = gid.children.select { |element| element.name == 'Xid'}.first
-            @load[2] = xid.text
-          when 'ShipmentRefnum'
-            parse_shipment_refnum(shipment_header_attr_element)
-          when 'InternalShipmentStatus'
-            parsed_internal_shipment_status = parse_internal_shipment_status(shipment_header_attr_element)
-            @load[0] = 'delete' if parsed_internal_shipment_status[:status_type] == 'TRACK' && parsed_internal_shipment_status[:status_value] == 'TRACK_NO'
-          when 'ShipmentName'
-            @shipment_name = shipment_header_attr_element.text
-            @load[11] = @shipment_name
-          end
-        end
-
+        shipment_attr_element.children.each(&method(:method_name2))
         parse_4K_tags @load,shipment_attr_element
       end
 
@@ -177,6 +156,28 @@ module FourKitesParsers
         @load[8] << "GLOG Refnum: #{parsed_shipment_ref_num[:value]}" if parsed_shipment_ref_num[:xid].in?(['GLOG']) && parsed_shipment_ref_num[:value].present?
         @load[8] << get_label(parsed_shipment_ref_num[:xid]) + ": " + parsed_shipment_ref_num[:value] if valid_load_reference_number?(parsed_shipment_ref_num)
         @bm = parsed_shipment_ref_num[:value] if parsed_shipment_ref_num[:xid] == 'BM'
+      end
+
+
+      def method_name2(shipment_header_attr_element)
+        case shipment_header_attr_element.name
+        when 'ShipmentGid'
+          @load[1] = shipment_header_attr_element.xpath("./*[1][self::Gid]/Xid[1]").text
+          gid = shipment_header_attr_element.children.first
+          @load[8] << get_domain_name(gid)
+        when 'ServiceProviderGid'
+          gid = shipment_header_attr_element.children.first
+          xid = gid.children.select {|element| element.name == 'Xid'}.first
+          @load[2] = xid.text
+        when 'ShipmentRefnum'
+          parse_shipment_refnum(shipment_header_attr_element)
+        when 'InternalShipmentStatus'
+          parsed_internal_shipment_status = parse_internal_shipment_status(shipment_header_attr_element)
+          @load[0] = 'delete' if parsed_internal_shipment_status[:status_type] == 'TRACK' && parsed_internal_shipment_status[:status_value] == 'TRACK_NO'
+        when 'ShipmentName'
+          @shipment_name = shipment_header_attr_element.text
+          @load[11] = @shipment_name
+        end
       end
 
     end
