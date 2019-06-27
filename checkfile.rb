@@ -48,32 +48,36 @@ module FourKitesParsers
 
       def parse_shipment
         begin
-          @shipment.children.each do |shipment_attr_element|
-            case shipment_attr_element.name
-            when 'ShipmentHeader'
-              parse_shipment_header(shipment_attr_element)
-            when 'ShipmentStop'
-              parsing_shipment_stop(shipment_attr_element)
-            when 'Location'
-              parse_location_reference_num(shipment_attr_element)
-            when 'Release'
-              parse_load_level_reference(shipment_attr_element)
-            end
-          end
+          @shipment.children.each(&method(:method_name1))
         rescue Exception => e
           FourKitesCommon::Logger.error(self, "Error parsing the file #{@file_name}", error: e.message)
         end
       end
 
-      def parse_load_level_reference(shipment_attr_element)
-        release_gid = shipment_attr_element.children.detect {|child| child.name == 'ReleaseGid'}
-        return if release_gid.blank?
-          gid = get_gid_from_element(release_gid)
-          if gid.present?
-            xid = get_xid_from_element(gid)
-            @load[8] << xid.text if xid.present?
+      def method_name1(shipment_attr_element)
+        case shipment_attr_element.name
+        when 'ShipmentHeader'
+          parse_shipment_header(shipment_attr_element)
+        when 'ShipmentStop'
+          parsing_shipment_stop(shipment_attr_element)
+        when 'Location'
+          parse_location_reference_num(shipment_attr_element)
+        when 'Release'
+          parse_load_level_reference(shipment_attr_element)
         end
       end
+
+      def parse_load_level_reference(shipment_attr_element)
+        release_gid = shipment_attr_element.children.detect {|child| child.name == 'ReleaseGid'}
+        # if release_gid.present?
+        return if release_gid.blank?
+        gid = get_gid_from_element(release_gid)
+        if gid.present?
+              xid = get_xid_from_element(gid)
+              @load[8] << xid.text if xid.present?
+        end
+      end
+
 
       def parse_location_reference_num(shipment_attr_element)
         parsed_locations = parse_location(shipment_attr_element)
@@ -130,9 +134,10 @@ module FourKitesParsers
 
       def get_customer_id shipment_stop, stop
         if customer_id = shipment_stop.xpath('LocationId') || shipment_stop.xpath('CustomerId')
-          return customer_id.text.blank?
+          unless customer_id.text.blank?
             stop[:customer] ||= {}
             stop[:customer][:id] = customer_id.text
+          end
         end
       end
 
